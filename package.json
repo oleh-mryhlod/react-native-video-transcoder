@@ -1,6 +1,6 @@
 {
   "name": "react-native-video-transcoder",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A powerful and easy-to-use video compression react native package for iOS and Android.",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
