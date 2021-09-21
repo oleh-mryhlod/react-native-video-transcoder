@@ -41,6 +41,7 @@ const App: () => Node = () => {
         videoUri,
         {
           quality: Quality.Medium,
+          debugEnabled: true,
         },
         {
           onStart: (data) => {
@@ -62,6 +63,9 @@ const App: () => Node = () => {
           onFailure: (data) => {
             console.log('error', data);
             setIsCompressing(false);
+          },
+          onDebug: (data) => {
+            console.log('debug', data);
           },
         }
       );

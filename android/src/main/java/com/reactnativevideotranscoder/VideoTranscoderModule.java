@@ -43,6 +43,8 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
 
     private MediaTransformer mMediaTransformer = null;
 
+    private Boolean mDebugEnabled = false;
+
     private static final String KEY_ROTATION = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
         ? MediaFormat.KEY_ROTATION
         : "rotation-degrees";
@@ -73,6 +75,7 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
             final String quality = options.hasKey("quality") ? options.getString("quality") : "";
             final String targetPath = options.hasKey("targetPath") ? options.getString("targetPath") : "";
             final boolean keepOriginalResolution = options.hasKey("keepOriginalResolution") && options.getBoolean("keepOriginalResolution");
+            mDebugEnabled = options.hasKey("debugEnabled") && options.getBoolean("debugEnabled");
 
             Uri sourceUri = Uri.parse(sourcePath);
             final File outputDir = reactContext.getCacheDir();
@@ -109,7 +112,7 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
 
             promise.resolve(requestId);
         } catch (Throwable e) {
-            Log.e(NAME, e.getMessage(), e);
+            logError(e.getMessage(), e);
             promise.reject("error", e.getMessage());
         }
     }
@@ -195,28 +198,54 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
 
         switch (quality) {
             case "VERY_LOW":
-                resultBitrate = bitrate > 0 ? (int) (bitrate * 0.08) : 700000;
+                resultBitrate = getBitrateByParams(bitrate, 0.08, 1000000);
                 break;
 
             case "MEDIUM":
-                resultBitrate = bitrate > 0 ? (int) (bitrate * 0.2) : 2000000;
+                resultBitrate = getBitrateByParams(bitrate, 0.2, 3000000);
                 break;
 
             case "HIGH":
-                resultBitrate = bitrate > 0 ? (int) (bitrate * 0.3) : 3000000;
+                resultBitrate = getBitrateByParams(bitrate, 0.3, 4000000);
                 break;
 
             case "VERY_HIGH":
-                resultBitrate = bitrate > 0 ? (int) (bitrate * 0.5) : 5000000;
+                resultBitrate = getBitrateByParams(bitrate, 0.5, 5000000);
                 break;
 
             case "LOW":
             default:
-                resultBitrate = bitrate > 0 ? (int) (bitrate * 0.1) : 1000000;
+                resultBitrate = getBitrateByParams(bitrate, 0.1, 2000000);
                 break;
 
         }
-        Log.i(NAME, String.format("bitrate - original: %d, result: %d", bitrate, resultBitrate));
+        logInfo(String.format("bitrate - original: %d, result: %d", bitrate, resultBitrate));
+
+        return resultBitrate;
+    }
+
+    private int getBitrateByParams(int bitrate, double multiplier, int minValue) {
+        int resultBitrate;
+        boolean isValidOriginal = bitrate > 0;
+
+        if (!isValidOriginal) {
+            resultBitrate = minValue;
+            logInfo(String.format("no origin bitrate - returning minValue: %d", minValue));
+        } else {
+          if (bitrate < minValue) {
+              logInfo(String.format("origin bitrate %d is lower then minValue %d - returning origin: %d", bitrate,  minValue, bitrate));
+              resultBitrate = bitrate;
+          } else {
+              resultBitrate = (int) (bitrate * multiplier);
+
+            if (resultBitrate < minValue) {
+                logInfo(String.format("result bitrate %d (%d * %,.2f) is lower then minValue %d - returning minValue: %d", resultBitrate,  bitrate, multiplier, minValue, minValue));
+                resultBitrate = minValue;
+            } else {
+                logInfo(String.format("result bitrate %d (%d * %,.2f) - returning result: %d", resultBitrate,  bitrate, multiplier, resultBitrate));
+            }
+          }
+        }
 
         return resultBitrate;
     }
@@ -247,6 +276,8 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
         size.put("width", newWidth);
         size.put("height", newHeight);
 
+        logInfo(String.format("width/height - original: %d/%d, result: %d/%d", width, height, newWidth, newHeight));
+
         return size;
     }
 
@@ -262,6 +293,27 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
         reactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit(eventName, params);
+    }
+
+    private void logInfo(String message) {
+      Log.i(NAME, message);
+
+      emitOnDebug(message);
+    }
+
+    private void logError(String message, @Nullable Throwable error) {
+      Log.e(NAME, message, error);
+
+      emitOnDebug(message);
+    }
+
+    private void emitOnDebug(String message) {
+        if (mDebugEnabled) {
+            WritableMap params = Arguments.createMap();
+            params.putString("message", message);
+
+            emitEvent("onDebug", params);
+        }
     }
 
     private void sendOnProgress(String requestId, float progress) {

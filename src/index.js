@@ -25,6 +25,7 @@ class VideoTranscoder {
     this._onSuccess = this._onSuccess.bind(this);
     this._onCancelled = this._onCancelled.bind(this);
     this._onFailure = this._onFailure.bind(this);
+    this._onDebug = this._onDebug.bind(this);
 
     this._initialized = false;
   }
@@ -39,6 +40,8 @@ class VideoTranscoder {
     VideoTranscoderEmitter.addListener('onSuccess', this._onSuccess);
     VideoTranscoderEmitter.addListener('onCancelled', this._onCancelled);
     VideoTranscoderEmitter.addListener('onFailure', this._onFailure);
+
+    VideoTranscoderEmitter.addListener('onDebug', this._onDebug);
 
     this._initialized = true;
   }
@@ -84,6 +87,12 @@ class VideoTranscoder {
     }
   }
 
+  async _onDebug({ message }) {
+    this._requestsListeners.forEach((listeners) => {
+      listeners.onDebug({ message });
+    });
+  }
+
   addListeners({
     requestId,
     onStart = () => {},
@@ -91,6 +100,7 @@ class VideoTranscoder {
     onSuccess = () => {},
     onCancelled = () => {},
     onFailure = () => {},
+    onDebug = () => {},
   }) {
     if (!this._initialized) {
       this.initListeners();
@@ -102,6 +112,7 @@ class VideoTranscoder {
       onSuccess,
       onCancelled,
       onFailure,
+      onDebug,
     });
   }
 
@@ -111,8 +122,13 @@ class VideoTranscoder {
 
   async compress(
     sourcePath,
-    { quality = Quality.Low, targetPath, keepOriginalResolution = false },
-    { onStart, onProgress, onSuccess, onCancelled, onFailure }
+    {
+      quality = Quality.Low,
+      targetPath,
+      keepOriginalResolution = false,
+      debugEnabled = false,
+    },
+    { onStart, onProgress, onSuccess, onCancelled, onFailure, onDebug }
   ) {
     const requestId = getId();
 
@@ -123,6 +139,7 @@ class VideoTranscoder {
       onSuccess,
       onCancelled,
       onFailure,
+      onDebug,
     });
 
     try {
@@ -130,6 +147,7 @@ class VideoTranscoder {
         quality,
         targetPath,
         keepOriginalResolution,
+        debugEnabled,
       });
 
       return requestId;
