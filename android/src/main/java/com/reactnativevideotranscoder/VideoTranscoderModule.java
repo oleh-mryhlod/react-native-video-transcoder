@@ -169,8 +169,8 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
         MediaFormat targetFormat = new MediaFormat();
 
         targetFormat.setLong(MediaFormat.KEY_DURATION, getLong(sourceFormat, MediaFormat.KEY_DURATION));
-        targetFormat.setInteger(MediaFormat.KEY_FRAME_RATE, getInt(sourceFormat, MediaFormat.KEY_FRAME_RATE));
-        targetFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, getInt(sourceFormat, MediaFormat.KEY_I_FRAME_INTERVAL));
+        targetFormat.setInteger(MediaFormat.KEY_FRAME_RATE, getInt(sourceFormat, MediaFormat.KEY_FRAME_RATE, 30));
+        targetFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, getInt(sourceFormat, MediaFormat.KEY_I_FRAME_INTERVAL, 5));
         targetFormat.setInteger(KEY_ROTATION, getInt(sourceFormat, KEY_ROTATION, 0));
 
         int bitrateData =
@@ -189,6 +189,25 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
 
         targetFormat.setString(MediaFormat.KEY_MIME, CodecUtils.MIME_TYPE_VIDEO_AVC);
 
+        logInfo(String.format("Target video format: " +
+            "KEY_DURATION: %d, " +
+            "KEY_FRAME_RATE: %d, " +
+            "KEY_I_FRAME_INTERVAL: %d, " +
+            "KEY_ROTATION: %d, " +
+            "KEY_BIT_RATE: %d, " +
+            "KEY_WIDTH: %d, " +
+            "KEY_HEIGHT: %d, " +
+            "KEY_MIME: %s",
+          targetFormat.getLong(MediaFormat.KEY_DURATION),
+          targetFormat.getInteger(MediaFormat.KEY_FRAME_RATE),
+          targetFormat.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL),
+          targetFormat.getInteger(KEY_ROTATION),
+          targetFormat.getInteger(MediaFormat.KEY_BIT_RATE),
+          targetFormat.getInteger(MediaFormat.KEY_WIDTH),
+          targetFormat.getInteger(MediaFormat.KEY_HEIGHT),
+          targetFormat.getString(MediaFormat.KEY_MIME)
+          ));
+
         return targetFormat;
     }
 
@@ -202,20 +221,20 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
                 break;
 
             case "MEDIUM":
-                resultBitrate = getBitrateByParams(bitrate, 0.2, 3000000);
+                resultBitrate = getBitrateByParams(bitrate, 0.2, 1500000);
                 break;
 
             case "HIGH":
-                resultBitrate = getBitrateByParams(bitrate, 0.3, 4000000);
+                resultBitrate = getBitrateByParams(bitrate, 0.3, 2000000);
                 break;
 
             case "VERY_HIGH":
-                resultBitrate = getBitrateByParams(bitrate, 0.5, 5000000);
+                resultBitrate = getBitrateByParams(bitrate, 0.5, 3000000);
                 break;
 
             case "LOW":
             default:
-                resultBitrate = getBitrateByParams(bitrate, 0.1, 2000000);
+                resultBitrate = getBitrateByParams(bitrate, 0.1, 1000000);
                 break;
 
         }
@@ -286,7 +305,7 @@ public class VideoTranscoderModule extends ReactContextBaseJavaModule {
     }
 
     private int generateWidthHeightValue(double value, double factor) {
-        return this.roundEven((int) (Math.round(value * factor / (double) 16) * 16));
+        return this.roundEven((int) (Math.round(value * factor)));
     }
 
     private void emitEvent(String eventName, @Nullable WritableMap params) {
