@@ -8,7 +8,7 @@ import LightCompressor
 @objc(VideoTranscoder)
 class VideoTranscoder: RCTEventEmitter {
   override func supportedEvents() -> [String]! {
-    return ["onStart", "onProgress", "onSuccess", "onCancelled", "onFailure"]
+    return ["onStart", "onProgress", "onSuccess", "onCancelled", "onFailure", "onDebug"]
   }
   
   override static func requiresMainQueueSetup() -> Bool {
